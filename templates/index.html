@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>TideLab — DNA &amp; RNA Sequence Analyser</title>
+  <link rel="stylesheet" href="/static/style.css" />
+</head>
+<body>
+
+<!-- ── Header ──────────────────────────────────────────────────────────────── -->
+<header class="tide-header">
+  <div class="header-brand">
+    <span class="brand-icon">🌊</span>
+    <h1>TideLab</h1>
+    <p class="subtitle">
+      Drop in a DNA or RNA sequence and watch it flow through transcription,
+      translation, and protein characterisation — step by step.
+    </p>
+  </div>
+
+  <!-- Wave SVG divider -->
+  <div class="wave-divider">
+    <svg viewBox="0 0 1200 48" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
+      <path d="M0,24 C200,48 400,0 600,24 C800,48 1000,0 1200,24 L1200,48 L0,48 Z"
+            fill="rgba(11,22,40,0.85)" />
+    </svg>
+  </div>
+</header>
+
+<!-- ── Main ────────────────────────────────────────────────────────────────── -->
+<main class="tidal-main">
+
+  <!-- ── Input Bay ──────────────────────────────────────────────────────────── -->
+  <section class="input-bay">
+    <p class="section-heading">Sequence Input</p>
+
+    <!-- Drag-and-drop zone wraps the textarea -->
+    <div class="drop-harbor" id="dropHarbor">
+      <div class="drop-overlay">
+        <span class="drop-overlay-icon">🪸</span>
+        <span class="drop-overlay-text">Drop your sequence file here</span>
+      </div>
+
+      <textarea
+        id="sequenceInput"
+        placeholder="Paste or type a DNA / RNA sequence here, or drop a .fasta / .txt file onto this box.&#10;&#10;Example DNA:  ATGAAAGCAATTTTCGTACTG...&#10;Example RNA:  AUGAAAGCAAUUUUCGUACUG..."
+        spellcheck="false"
+        autocorrect="off"
+        autocapitalize="off"
+      ></textarea>
+
+      <div class="input-controls">
+        <button class="btn-upload" id="uploadBtn">
+          📂 Upload file
+        </button>
+        <input type="file" id="fileInput" accept=".txt,.fasta,.fa,.seq" />
+        <span class="char-counter" id="charCounter">0 bases</span>
+      </div>
+    </div>
+
+    <!-- Quick sample sequences -->
+    <div class="sample-row">
+      <span class="sample-label">Try a sample:</span>
+      <button class="btn-sample" data-sample="dna_coding">DNA (coding strand)</button>
+      <button class="btn-sample" data-sample="dna_template">DNA (template strand)</button>
+      <button class="btn-sample" data-sample="rna">RNA sequence</button>
+    </div>
+
+    <!-- Strand type selector — only shown when DNA is detected -->
+    <div class="strand-compass" id="strandCompass">
+      <h3>⚓ Which DNA strand did you provide?</h3>
+      <p style="font-size:0.82rem;color:var(--text-muted);margin-bottom:14px">
+        This choice affects how transcription is performed. If you're not sure,
+        the <strong>coding strand</strong> is the most common convention for sequences
+        listed in databases.
+      </p>
+      <div class="strand-options">
+        <div class="strand-option">
+          <input type="radio" name="strandPolarity" id="strandCoding" value="coding" checked />
+          <label for="strandCoding">
+            <span class="strand-name">Non-template strand</span>
+            <span class="strand-alias">(coding strand / sense strand / 5′→3′)</span>
+          </label>
+        </div>
+        <div class="strand-option">
+          <input type="radio" name="strandPolarity" id="strandTemplate" value="template" />
+          <label for="strandTemplate">
+            <span class="strand-name">Template strand</span>
+            <span class="strand-alias">(antisense strand / minus strand / 3′→5′)</span>
+          </label>
+        </div>
+      </div>
+    </div>
+
+    <!-- Error banner -->
+    <div class="error-banner" id="errorBanner"></div>
+
+    <!-- Launch row -->
+    <div class="launch-row">
+      <button class="btn-launch" id="launchBtn">
+        🔬 Analyse Sequence
+      </button>
+      <button class="btn-clear" id="clearBtn">Clear</button>
+      <span style="font-size:0.75rem;color:var(--text-muted)">or Ctrl+Enter</span>
+    </div>
+  </section>
+
+  <!-- ── Loading indicator ───────────────────────────────────────────────────── -->
+  <div class="analysis-loader" id="analysisLoader">
+    <div class="loader-wave">
+      <span></span><span></span><span></span><span></span><span></span>
+    </div>
+    <p class="loader-text">Analysing sequence — running the full molecular pipeline…</p>
+  </div>
+
+  <!-- ── Results Bay ─────────────────────────────────────────────────────────── -->
+  <section class="results-bay" id="resultsBay">
+
+    <!-- Step 1: Sequence Detection -->
+    <div class="tidal-card" id="detectionCard">
+      <div class="card-header">
+        <span class="step-beacon">1</span>
+        <h2>Sequence Detection</h2>
+        <span class="step-icon">🔎</span>
+      </div>
+      <div class="card-body" id="detectionContent">
+        <!-- painted by paintDetectionBay() -->
+      </div>
+    </div>
+
+    <!-- Step 2: Transcription -->
+    <div class="tidal-card" id="transcriptionCard">
+      <div class="card-header">
+        <span class="step-beacon">2</span>
+        <h2>Transcription</h2>
+        <span class="step-icon">📜</span>
+      </div>
+      <div class="card-body" id="transcriptionContent">
+        <!-- painted by paintTranscriptionCurrent() -->
+      </div>
+    </div>
+
+    <!-- Step 3: Translation -->
+    <div class="tidal-card" id="translationCard">
+      <div class="card-header">
+        <span class="step-beacon">3</span>
+        <h2>Translation — Codon Map</h2>
+        <span class="step-icon">🔡</span>
+      </div>
+      <div class="card-body" id="translationContent">
+        <!-- painted by paintCodonWaveLog() -->
+      </div>
+    </div>
+
+    <!-- Step 4: Amino Acids -->
+    <div class="tidal-card" id="aminoAcidsCard">
+      <div class="card-header">
+        <span class="step-beacon">4</span>
+        <h2>Amino Acids &amp; Polypeptide Chain</h2>
+        <span class="step-icon">🪪</span>
+      </div>
+      <div class="card-body" id="aminoAcidsContent">
+        <!-- painted by paintPearlNecklace() -->
+      </div>
+    </div>
+
+    <!-- Step 5: Protein -->
+    <div class="tidal-card" id="proteinCard">
+      <div class="card-header">
+        <span class="step-beacon">5</span>
+        <h2>Protein Characterisation &amp; Database Search</h2>
+        <span class="step-icon">🧪</span>
+      </div>
+      <div class="card-body" id="proteinContent">
+        <!-- painted by paintReefProtein() -->
+      </div>
+    </div>
+
+  </section><!-- /results-bay -->
+
+</main>
+
+<!-- ── Footer ──────────────────────────────────────────────────────────────── -->
+<footer class="tide-footer">
+  TideLab &mdash; DNA &amp; RNA Sequence Analyser &nbsp;|&nbsp;
+  Database lookups powered by
+  <strong>UniProtKB/Swiss-Prot</strong> via EBI BLAST &nbsp;|&nbsp;
+  Press <kbd style="background:rgba(77,184,255,0.1);padding:1px 5px;border-radius:3px;border:1px solid rgba(77,184,255,0.2)">Ctrl+Enter</kbd>
+  to analyse
+</footer>
+
+<script src="/static/script.js"></script>
+</body>
+</html>
